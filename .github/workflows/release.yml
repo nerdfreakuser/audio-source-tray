@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish
+        run: >
+          dotnet publish AudioSourceTray.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          -o dist
+          /p:PublishSingleFile=true
+          /p:IncludeNativeLibrariesForSelfExtract=true
+          /p:EnableCompressionInSingleFile=true
+          /p:DebugType=none
+
+      - name: Stage package
+        run: |
+          Copy-Item install.ps1, uninstall.ps1, LICENSE, README.md, icon.ico dist -Force
+          Compress-Archive -Path dist\* -DestinationPath AudioSource-win-x64.zip -Force
+
+      - name: Upload release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AudioSource-win-x64.zip
+          generate_release_notes: true
