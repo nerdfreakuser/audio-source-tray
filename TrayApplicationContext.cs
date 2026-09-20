@@ -25,7 +25,7 @@ sealed class TrayApplicationContext : ApplicationContext
         _promoteTimer = new System.Windows.Forms.Timer { Interval = 800 };
         _clickWatcher = new MouseClickWatcher(OnOutsideClick);
 
-        _startupItem = new ToolStripMenuItem("Start with Windows")
+        _startupItem = new ToolStripMenuItem("Run on startup")
         {
             CheckOnClick = true,
             Checked = StartupManager.IsEnabled(),
@@ -35,26 +35,25 @@ sealed class TrayApplicationContext : ApplicationContext
         _menu = new ContextMenuStrip();
         _menu.Items.Add(_startupItem);
         _menu.Items.Add(new ToolStripSeparator());
-        _menu.Items.Add("Exit", null, (_, _) => ExitThread());
-        _menu.Opening += (_, _) =>
-        {
-            HidePopup();
-            _startupItem.Checked = StartupManager.IsEnabled();
-        };
+        _menu.Items.Add("Close", null, (_, _) => ExitThread());
+        _menu.Opening += (_, _) => SyncStartupItem();
 
         _tray = new NotifyIcon
         {
             Icon = AppIcons.Idle,
             Visible = true,
             Text = "",
-            ContextMenuStrip = _menu,
         };
         _tray.MouseMove += (_, _) => OnTrayHover();
-        _tray.MouseClick += (_, e) =>
+        _tray.MouseUp += (_, e) =>
         {
             if (e.Button == MouseButtons.Left)
             {
                 PinAndShow();
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                ShowContextMenu();
             }
         };
 
@@ -110,6 +109,22 @@ sealed class TrayApplicationContext : ApplicationContext
         {
             // Keep the tray alive if a single poll fails.
         }
+    }
+
+    private void SyncStartupItem()
+    {
+        var enabled = StartupManager.IsEnabled();
+        if (_startupItem.Checked != enabled)
+        {
+            _startupItem.Checked = enabled;
+        }
+    }
+
+    private void ShowContextMenu()
+    {
+        HidePopup();
+        SyncStartupItem();
+        _menu.Show(Cursor.Position);
     }
 
     private void OnTrayHover()
@@ -181,6 +196,11 @@ sealed class TrayApplicationContext : ApplicationContext
         }
 
         if (_popup?.ContainsScreenPoint(screenPoint) == true)
+        {
+            return;
+        }
+
+        if (_menu.Visible && _menu.Bounds.Contains(screenPoint))
         {
             return;
         }

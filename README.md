@@ -11,7 +11,7 @@ Hover the equalizer icon in the tray. While something is playing, the icon turns
 - the window or now-playing title when Windows exposes it
 - the output device (headphones, speakers, HDMI, …)
 
-Click the icon to pin the popup until you click elsewhere. Right-click for **Start with Windows** (on by default) and **Exit**.
+Click the icon to pin the popup until you click elsewhere. Right-click for **Run on startup** (on by default) and **Close**.
 
 ## Install
 
