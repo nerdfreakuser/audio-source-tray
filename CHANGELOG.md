@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Right-click menu now closes when you click away from it
+
 ## 1.1.0
 
 - Right-click menu: **Run on startup** toggle and **Close**
