@@ -15,6 +15,7 @@ sealed class TrayApplicationContext : ApplicationContext
     private Point _lastHoverPoint;
     private bool _playingIcon;
     private bool _pinned;
+    private bool _menuOpen;
 
     public TrayApplicationContext()
     {
@@ -37,6 +38,7 @@ sealed class TrayApplicationContext : ApplicationContext
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("Close", null, (_, _) => ExitThread());
         _menu.Opening += (_, _) => SyncStartupItem();
+        _menu.Closed += (_, _) => _menuOpen = false;
 
         _tray = new NotifyIcon
         {
@@ -122,6 +124,7 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void ShowContextMenu()
     {
+        _menuOpen = true;
         HidePopup();
         SyncStartupItem();
         _menu.Show(Cursor.Position);
@@ -129,6 +132,11 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void OnTrayHover()
     {
+        if (_menuOpen || _menu.Visible)
+        {
+            return;
+        }
+
         ShowPopup();
         if (!_pinned)
         {
@@ -138,17 +146,27 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void PinAndShow()
     {
+        if (_menuOpen || _menu.Visible)
+        {
+            return;
+        }
+
         _pinned = true;
         _hideTimer.Stop();
         ShowPopup();
-        _clickWatcher.Start();
     }
 
     private void ShowPopup()
     {
+        if (_menuOpen || _menu.Visible)
+        {
+            return;
+        }
+
         _lastHoverPoint = Cursor.Position;
         Popup.SetSnapshot(_snapshot);
         Popup.ShowNear(_lastHoverPoint);
+        _clickWatcher.Start();
     }
 
     private void ScheduleHide()
@@ -190,17 +208,23 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void OnOutsideClick(Point screenPoint)
     {
-        if (!_pinned)
+        if (_menuOpen || _menu.Visible)
+        {
+            if (_menu.Bounds.Contains(screenPoint))
+            {
+                return;
+            }
+
+            HidePopup();
+            return;
+        }
+
+        if (_popup is not { Visible: true })
         {
             return;
         }
 
-        if (_popup?.ContainsScreenPoint(screenPoint) == true)
-        {
-            return;
-        }
-
-        if (_menu.Visible && _menu.Bounds.Contains(screenPoint))
+        if (_popup.ContainsScreenPoint(screenPoint))
         {
             return;
         }
