@@ -53,7 +53,14 @@ sealed class MouseClickWatcher : IDisposable
             {
                 var info = Marshal.PtrToStructure<MsllHookStruct>(lParam);
                 var point = new Point(info.Point.X, info.Point.Y);
-                _sync.Post(_ => _onClick(point), null);
+                if (SynchronizationContext.Current == _sync)
+                {
+                    _onClick(point);
+                }
+                else
+                {
+                    _sync.Post(_ => _onClick(point), null);
+                }
             }
         }
 

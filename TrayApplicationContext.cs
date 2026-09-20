@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace AudioSourceTray;
 
 sealed class TrayApplicationContext : ApplicationContext
@@ -33,12 +35,19 @@ sealed class TrayApplicationContext : ApplicationContext
         };
         _startupItem.CheckedChanged += (_, _) => StartupManager.SetEnabled(_startupItem.Checked);
 
-        _menu = new ContextMenuStrip();
+        _menu = new ContextMenuStrip { AutoClose = true };
         _menu.Items.Add(_startupItem);
         _menu.Items.Add(new ToolStripSeparator());
         _menu.Items.Add("Close", null, (_, _) => ExitThread());
         _menu.Opening += (_, _) => SyncStartupItem();
-        _menu.Closed += (_, _) => _menuOpen = false;
+        _menu.Closed += (_, _) =>
+        {
+            _menuOpen = false;
+            if (_popup is not { Visible: true })
+            {
+                _clickWatcher.Stop();
+            }
+        };
 
         _tray = new NotifyIcon
         {
@@ -128,6 +137,12 @@ sealed class TrayApplicationContext : ApplicationContext
         HidePopup();
         SyncStartupItem();
         _menu.Show(Cursor.Position);
+        if (_menu.IsHandleCreated)
+        {
+            SetForegroundWindow(_menu.Handle);
+        }
+
+        _clickWatcher.Start();
     }
 
     private void OnTrayHover()
@@ -210,12 +225,13 @@ sealed class TrayApplicationContext : ApplicationContext
     {
         if (_menuOpen || _menu.Visible)
         {
-            if (_menu.Bounds.Contains(screenPoint))
+            if (MenuContains(screenPoint))
             {
                 return;
             }
 
-            HidePopup();
+            _menu.Close();
+            _menuOpen = false;
             return;
         }
 
@@ -244,6 +260,21 @@ sealed class TrayApplicationContext : ApplicationContext
         _hideTimer.Stop();
         _popup?.HidePopup();
     }
+
+    private bool MenuContains(Point screenPoint)
+    {
+        if (!_menu.Visible || !_menu.IsHandleCreated)
+        {
+            return false;
+        }
+
+        var rect = _menu.RectangleToScreen(_menu.ClientRectangle);
+        rect.Inflate(6, 6);
+        return rect.Contains(screenPoint);
+    }
+
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     protected override void ExitThreadCore()
     {
