@@ -2,44 +2,44 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/nerdfreakuser/audio-source-tray)](https://github.com/nerdfreakuser/audio-source-tray/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/nerdfreakuser/audio-source-tray/total)](https://github.com/nerdfreakuser/audio-source-tray/releases/latest)
 
-A Windows system-tray app that shows **which app and playback device** current audio is coming from.
+Tiny Windows tray app that answers **where is that sound coming from?**
 
-Hover the equalizer icon in the tray. While something is playing, the icon turns green and a popup lists:
+<p align="center">
+  <img src="docs/preview.jpg" alt="Audio Source showing Google Chrome playing through Speakers" width="920">
+</p>
 
-- the application (Chrome, Spotify, Discord, …)
-- the window or now-playing title when Windows exposes it
-- the output device (headphones, speakers, HDMI, …)
+Hover the green equalizer icon. It names the app, the track or window title, and the output device. Click to pin the card; click anywhere else to dismiss it.
 
-Click the icon to pin the popup until you click elsewhere. Right-click for **Run on startup** (on by default) and **Close**.
+## Features
+
+- Live WASAPI mixer view — browsers, games, Discord, system sounds, not only “Now Playing”
+- Track / window title when Windows exposes it
+- Output device (headphones, speakers, HDMI, …)
+- Left-click pins the popup; click off closes it
+- Right-click: **Run on startup** and **Close**
+- Start Menu + Desktop shortcuts, runs at logon
 
 ## Install
 
-Windows 10/11, 64-bit. The release is self-contained — you do not need to install .NET.
+Windows 10/11, 64-bit. The release is self-contained — no .NET install needed.
 
-### One-liner
-
-In PowerShell:
+**PowerShell:**
 
 ```powershell
 irm https://raw.githubusercontent.com/nerdfreakuser/audio-source-tray/main/install-from-web.ps1 | iex
 ```
 
-### From a release zip
+Or grab [**AudioSource-win-x64.zip**](https://github.com/nerdfreakuser/audio-source-tray/releases/latest), extract, and run `install.ps1`.
 
-1. Download [**AudioSource-win-x64.zip**](https://github.com/nerdfreakuser/audio-source-tray/releases/latest) from the latest release.
-2. Extract it.
-3. Run `install.ps1`.
+That installs to `%LOCALAPPDATA%\AudioSourceTray`, starts the tray icon, and adds shortcuts.
 
-That copies the app to `%LOCALAPPDATA%\AudioSourceTray`, starts it, adds **Start Menu** and **Desktop** shortcuts, and registers it to run at logon.
-
-Windows may hide a new tray icon behind the `^` overflow. Open that and drag **Audio Source** onto the visible tray if you want it always shown.
-
-SmartScreen may warn on the first run because the exe is not code-signed. Choose **More info** → **Run anyway**.
+Windows may hide a new icon behind the `^` overflow — drag **Audio Source** onto the visible tray. SmartScreen may warn because the exe is unsigned: **More info** → **Run anyway**.
 
 ### From source
 
-Requires the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+Needs the [.NET 10 SDK](https://dotnet.microsoft.com/download).
 
 ```powershell
 git clone https://github.com/nerdfreakuser/audio-source-tray.git
@@ -49,15 +49,14 @@ cd audio-source-tray
 
 ## Uninstall
 
-- Settings → Apps → **Audio Source** → Uninstall  
-- or run `uninstall.ps1` from the repo or from `%LOCALAPPDATA%\AudioSourceTray`
+Settings → Apps → **Audio Source**, or run `uninstall.ps1`.
 
 ## How it works
 
-Audio Source reads Windows audio sessions (WASAPI) to see which processes are actually outputting sound, and optionally enriches that with System Media Transport Controls for a track title.
+Reads Windows audio sessions (WASAPI) to see which processes are actually outputting sound, then optionally adds a System Media Transport Controls title.
 
-Apps that bypass the Windows mixer (some ASIO / exclusive-mode tools) will not appear.
+Apps that bypass the mixer (some ASIO / exclusive-mode tools) will not appear.
 
 ## License
 
-[MIT](LICENSE). Audio uses [NAudio](https://github.com/naudio/NAudio) (MIT).
+[MIT](LICENSE). Uses [NAudio](https://github.com/naudio/NAudio) (MIT).

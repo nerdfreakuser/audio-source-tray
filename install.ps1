@@ -72,7 +72,7 @@ New-ItemProperty -Path $uninstallKey -Name "DisplayIcon" -Value $exe -PropertyTy
 New-ItemProperty -Path $uninstallKey -Name "Publisher" -Value "Audio Source" -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $uninstallKey -Name "InstallLocation" -Value $out -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $uninstallKey -Name "UninstallString" -Value $uninstallCommand -PropertyType String -Force | Out-Null
-New-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -Value "1.0.0" -PropertyType String -Force | Out-Null
+New-ItemProperty -Path $uninstallKey -Name "DisplayVersion" -Value "1.1.0" -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $uninstallKey -Name "URLInfoAbout" -Value "https://github.com/nerdfreakuser/audio-source-tray" -PropertyType String -Force | Out-Null
 New-ItemProperty -Path $uninstallKey -Name "NoModify" -Value 1 -PropertyType DWord -Force | Out-Null
 New-ItemProperty -Path $uninstallKey -Name "NoRepair" -Value 1 -PropertyType DWord -Force | Out-Null
