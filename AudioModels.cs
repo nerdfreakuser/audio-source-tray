@@ -7,7 +7,9 @@ sealed record AudioSource(
     string DeviceName,
     float Peak,
     string? Detail,
-    bool FromMeter);
+    bool FromMeter,
+    float Volume,
+    bool VolumeAdjustable);
 
 sealed record AudioSnapshot(IReadOnlyList<AudioSource> Sources, string? DefaultDevice)
 {

@@ -91,6 +91,8 @@ sealed class TrayApplicationContext : ApplicationContext
                 _popup = new HoverPopup();
                 _popup.MouseEnter += (_, _) => _hideTimer.Stop();
                 _popup.MouseLeave += (_, _) => ScheduleHide();
+                _popup.VolumeChanged += (source, volume) =>
+                    _monitor.SetVolume(source.ProcessId, source.DeviceName, volume);
             }
 
             return _popup;
@@ -186,7 +188,7 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void ScheduleHide()
     {
-        if (_pinned)
+        if (_pinned || _popup?.IsAdjustingVolume == true)
         {
             return;
         }
@@ -196,7 +198,7 @@ sealed class TrayApplicationContext : ApplicationContext
 
     private void MaybeHide()
     {
-        if (_pinned)
+        if (_pinned || _popup?.IsAdjustingVolume == true)
         {
             return;
         }

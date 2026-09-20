@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Per-app volume bar on the popup (drag to change mixer volume)
+- Preview image matches the real UI
+
 ## 1.1.1
 
 - Right-click menu now closes when you click away from it

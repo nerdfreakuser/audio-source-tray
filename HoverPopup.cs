@@ -7,6 +7,12 @@ sealed class HoverPopup : Form
 {
     private AudioSnapshot _snapshot = AudioSnapshot.Empty;
     private float _scale = 1f;
+    private readonly List<(AudioSource Source, Rectangle Bar)> _bars = [];
+    private AudioSource? _dragging;
+
+    public event Action<AudioSource, float>? VolumeChanged;
+
+    public bool IsAdjustingVolume => _dragging is not null;
 
     public HoverPopup()
     {
@@ -73,6 +79,14 @@ sealed class HoverPopup : Form
 
     public void SetSnapshot(AudioSnapshot snapshot)
     {
+        if (_dragging is not null)
+        {
+            snapshot = new AudioSnapshot(
+                snapshot.Sources.Select(source =>
+                    SameSource(source, _dragging) ? source with { Volume = _dragging.Volume } : source).ToList(),
+                snapshot.DefaultDevice);
+        }
+
         _snapshot = snapshot;
         if (!Visible)
         {
@@ -110,6 +124,8 @@ sealed class HoverPopup : Form
 
     public void HidePopup()
     {
+        _dragging = null;
+        Capture = false;
         if (Visible)
         {
             Hide();
@@ -152,6 +168,10 @@ sealed class HoverPopup : Form
                 }
 
                 height += TextRenderer.MeasureText(source.DeviceName, bodyFont, new Size(width - Scale(24), 0), TextFormat).Height;
+                if (source.VolumeAdjustable)
+                {
+                    height += Scale(22);
+                }
             }
         }
 
@@ -208,6 +228,7 @@ sealed class HoverPopup : Form
             return;
         }
 
+        _bars.Clear();
         foreach (var source in _snapshot.Sources)
         {
             y += Scale(6);
@@ -241,6 +262,26 @@ sealed class HoverPopup : Form
                 Color.FromArgb(110, 110, 114),
                 TextFormat);
             y += TextRenderer.MeasureText(source.DeviceName, bodyFont, new Size(innerWidth, 0), TextFormat).Height;
+
+            if (source.VolumeAdjustable)
+            {
+                y += Scale(4);
+                var volume = SameSource(source, _dragging) ? _dragging!.Volume : source.Volume;
+                var percent = $"{Math.Clamp((int)Math.Round(volume * 100), 0, 100)}%";
+                var percentSize = TextRenderer.MeasureText(percent, bodyFont);
+                var barWidth = Math.Max(Scale(80), innerWidth - percentSize.Width - Scale(8));
+                var barHeight = Scale(6);
+                var bar = new Rectangle(x, y + Scale(4), barWidth, barHeight);
+                DrawVolumeBar(g, bar, volume);
+                TextRenderer.DrawText(
+                    g,
+                    percent,
+                    bodyFont,
+                    new Point(bar.Right + Scale(8), y),
+                    Color.FromArgb(174, 174, 178));
+                _bars.Add((source, Rectangle.Inflate(bar, Scale(2), Scale(8))));
+                y += Scale(18);
+            }
         }
     }
 
@@ -251,6 +292,84 @@ sealed class HoverPopup : Form
         using var brush = new SolidBrush(Color.FromArgb(alpha, 50, 215, 75));
         g.FillEllipse(brush, x, y, size, size);
     }
+
+    private static void DrawVolumeBar(Graphics g, Rectangle bar, float volume)
+    {
+        volume = Math.Clamp(volume, 0f, 1f);
+        using var track = new SolidBrush(Color.FromArgb(50, 50, 54));
+        using var fill = new SolidBrush(Color.FromArgb(50, 215, 75));
+        g.FillRectangle(track, bar);
+        var fillWidth = Math.Max(0, (int)Math.Round(bar.Width * volume));
+        if (fillWidth > 0)
+        {
+            g.FillRectangle(fill, bar.X, bar.Y, fillWidth, bar.Height);
+        }
+    }
+
+    protected override void OnMouseDown(MouseEventArgs e)
+    {
+        base.OnMouseDown(e);
+        if (e.Button != MouseButtons.Left)
+        {
+            return;
+        }
+
+        foreach (var (source, bar) in _bars)
+        {
+            if (!source.VolumeAdjustable || !bar.Contains(e.Location))
+            {
+                continue;
+            }
+
+            Capture = true;
+            ApplyVolume(source, bar, e.X);
+            return;
+        }
+    }
+
+    protected override void OnMouseMove(MouseEventArgs e)
+    {
+        base.OnMouseMove(e);
+        if (_dragging is null || (e.Button & MouseButtons.Left) == 0)
+        {
+            return;
+        }
+
+        foreach (var (source, bar) in _bars)
+        {
+            if (!SameSource(source, _dragging))
+            {
+                continue;
+            }
+
+            ApplyVolume(_dragging, bar, e.X);
+            return;
+        }
+    }
+
+    protected override void OnMouseUp(MouseEventArgs e)
+    {
+        base.OnMouseUp(e);
+        if (e.Button == MouseButtons.Left)
+        {
+            _dragging = null;
+            Capture = false;
+        }
+    }
+
+    private void ApplyVolume(AudioSource source, Rectangle bar, int mouseX)
+    {
+        var volume = bar.Width <= 0 ? 0f : Math.Clamp((mouseX - bar.X) / (float)bar.Width, 0f, 1f);
+        _dragging = source with { Volume = volume };
+        VolumeChanged?.Invoke(source, volume);
+        Invalidate();
+    }
+
+    private static bool SameSource(AudioSource left, AudioSource? right)
+        => right is not null
+           && left.ProcessId == right.ProcessId
+           && string.Equals(left.DeviceName, right.DeviceName, StringComparison.OrdinalIgnoreCase)
+           && string.Equals(left.ProcessName, right.ProcessName, StringComparison.OrdinalIgnoreCase);
 
     private static Font TitleFont() => new("Segoe UI", 8f, FontStyle.Bold);
     private static Font AppFont() => new("Segoe UI", 10f, FontStyle.Bold);

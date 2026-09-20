@@ -133,7 +133,9 @@ sealed class AudioMonitor : IDisposable
                     DeviceName: defaultName ?? "Playback device",
                     Peak: 0,
                     Detail: detail,
-                    FromMeter: false));
+                    FromMeter: false,
+                    Volume: 1f,
+                    VolumeAdjustable: false));
             }
 
             merged.Sort((a, b) => b.Peak.CompareTo(a.Peak));
@@ -240,6 +242,15 @@ sealed class AudioMonitor : IDisposable
                 }
 
                 var detail = mediaDetail ?? CleanDetail(ProcessLookup.TitleFor(pid, processName), appName, processName);
+                var volume = 1f;
+                try
+                {
+                    volume = session.SimpleAudioVolume.Volume;
+                }
+                catch
+                {
+                    volume = 1f;
+                }
 
                 sources.Add(new AudioSource(
                     AppName: appName,
@@ -248,7 +259,9 @@ sealed class AudioMonitor : IDisposable
                     DeviceName: device.FriendlyName,
                     Peak: peak,
                     Detail: detail,
-                    FromMeter: peak >= PeakThreshold));
+                    FromMeter: peak >= PeakThreshold,
+                    Volume: volume,
+                    VolumeAdjustable: true));
             }
             catch
             {
@@ -274,6 +287,8 @@ sealed class AudioMonitor : IDisposable
                 Peak = Math.Max(existing.Peak, source.Peak),
                 Detail = PreferDetail(existing.Detail, source.Detail),
                 FromMeter = existing.FromMeter || source.FromMeter,
+                Volume = source.Peak >= existing.Peak ? source.Volume : existing.Volume,
+                VolumeAdjustable = existing.VolumeAdjustable || source.VolumeAdjustable,
             };
         }
 
@@ -335,6 +350,50 @@ sealed class AudioMonitor : IDisposable
         }
 
         return string.IsNullOrWhiteSpace(leaf) ? "Media app" : leaf;
+    }
+
+    public bool SetVolume(int processId, string deviceName, float volume)
+    {
+        volume = Math.Clamp(volume, 0f, 1f);
+        try
+        {
+            EnsureDevices(force: false);
+            foreach (var device in _devices.Values)
+            {
+                if (!string.Equals(device.FriendlyName, deviceName, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var sessions = device.AudioSessionManager.Sessions;
+                for (var i = 0; i < sessions.Count; i++)
+                {
+                    using var session = sessions[i];
+                    try
+                    {
+                        var pid = (int)session.GetProcessID;
+                        var system = session.IsSystemSoundsSession;
+                        if (pid != processId && !(processId == 0 && system))
+                        {
+                            continue;
+                        }
+
+                        session.SimpleAudioVolume.Volume = volume;
+                        return true;
+                    }
+                    catch
+                    {
+                        // Session expired while writing.
+                    }
+                }
+            }
+        }
+        catch
+        {
+            return false;
+        }
+
+        return false;
     }
 
     public void Dispose()

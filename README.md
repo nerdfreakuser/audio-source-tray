@@ -7,7 +7,7 @@
 Tiny Windows tray app that answers **where is that sound coming from?**
 
 <p align="center">
-  <img src="docs/preview.jpg" alt="Audio Source showing Google Chrome playing through Speakers" width="920">
+  <img src="docs/preview.png" alt="Audio Source popup with app, device, and volume bar" width="920">
 </p>
 
 Hover the green equalizer icon. It names the app, the track or window title, and the output device. Click to pin the card; click anywhere else to dismiss it.
@@ -17,6 +17,7 @@ Hover the green equalizer icon. It names the app, the track or window title, and
 - Live WASAPI mixer view — browsers, games, Discord, system sounds, not only “Now Playing”
 - Track / window title when Windows exposes it
 - Output device (headphones, speakers, HDMI, …)
+- Per-app volume bar on the popup
 - Left-click pins the popup; click off closes it
 - Right-click: **Run on startup** and **Close**
 - Start Menu + Desktop shortcuts, runs at logon
